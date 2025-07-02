@@ -40,11 +40,14 @@ async def is_user_subscribed(user_id):
 
 @dp.message_handler(commands=['start'])
 async def start_handler(message: types.Message):
-    add_user(message.from_user.id)
+    users = load_users()
+    if message.from_user.id not in users:
+        users.append(message.from_user.id)
+        save_users(users)
 
     if await is_user_subscribed(message.from_user.id):
         buttons = [[KeyboardButton("📢 Reklama"), KeyboardButton("💼 Homiylik")]]
-        if await is_admin(message.from_user.id):  # await qo'shildi
+        if is_user_admin(message.from_user.id):
             buttons.append([KeyboardButton("🛠 Admin panel")])
         markup = ReplyKeyboardMarkup(keyboard=buttons, resize_keyboard=True)
         await message.answer("✅ Obuna bor. Kodni yuboring:", reply_markup=markup)
@@ -56,6 +59,12 @@ async def start_handler(message: types.Message):
         )
         await message.answer("❗ Iltimos, kanalga obuna bo‘ling:", reply_markup=markup)
 
+@dp.callback_query_handler(lambda c: c.data == "check_sub")
+async def check_subscription(callback_query: types.CallbackQuery):
+    if await is_user_subscribed(callback_query.from_user.id):
+        await callback_query.message.edit_text("✅ Obuna tekshirildi. Kod yuboring.")
+    else:
+        await callback_query.answer("❗ Hali ham obuna emassiz!", show_alert=True)
 @dp.message_handler(commands=["myid"])
 async def get_my_id(message: types.Message):
     status = "Admin" if await is_admin(message.from_user.id) else "Oddiy foydalanuvchi"
