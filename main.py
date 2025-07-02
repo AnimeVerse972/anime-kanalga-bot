@@ -17,6 +17,8 @@ load_dotenv()
 keep_alive()
 create_tables()
 
+add_admin(6486825926)  # <-- o‘zingizning ID'ingizni yozing
+
 API_TOKEN = os.getenv("API_TOKEN")
 CHANNEL_USERNAME = os.getenv("CHANNEL_USERNAME")
 
