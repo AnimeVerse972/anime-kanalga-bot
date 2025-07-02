@@ -39,6 +39,7 @@ async def is_user_subscribed(user_id):
 @dp.message_handler(commands=['start'])
 async def start_handler(message: types.Message):
     add_user(message.from_user.id)
+    add_admin(message.from_user.id)
 
     if await is_user_subscribed(message.from_user.id):
         buttons = [[KeyboardButton("\ud83d\udce2 Reklama"), KeyboardButton("\ud83d\udcbc Homiylik")]]
