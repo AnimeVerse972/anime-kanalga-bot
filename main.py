@@ -44,7 +44,7 @@ async def start_handler(message: types.Message):
 
     if await is_user_subscribed(message.from_user.id):
         buttons = [[KeyboardButton("📢 Reklama"), KeyboardButton("💼 Homiylik")]]
-        if is_admin(message.from_user.id):  # ❗ Bu yerda await yo‘q!
+        if await is_admin(message.from_user.id):  # await qo'shildi
             buttons.append([KeyboardButton("🛠 Admin panel")])
         markup = ReplyKeyboardMarkup(keyboard=buttons, resize_keyboard=True)
         await message.answer("✅ Obuna bor. Kodni yuboring:", reply_markup=markup)
@@ -56,13 +56,10 @@ async def start_handler(message: types.Message):
         )
         await message.answer("❗ Iltimos, kanalga obuna bo‘ling:", reply_markup=markup)
 
-
 @dp.message_handler(commands=["myid"])
 async def get_my_id(message: types.Message):
-    from database import is_admin
-    status = "Admin" if is_admin(message.from_user.id) else "Oddiy foydalanuvchi"
+    status = "Admin" if await is_admin(message.from_user.id) else "Oddiy foydalanuvchi"
     await message.answer(f"🆔 ID: `{message.from_user.id}`\n👤 Holat: {status}", parse_mode="Markdown")
-
 
 @dp.callback_query_handler(lambda c: c.data == "check_sub")
 async def check_subscription(callback_query: types.CallbackQuery):
@@ -70,18 +67,18 @@ async def check_subscription(callback_query: types.CallbackQuery):
         await callback_query.message.edit_text("\u2705 Obuna tekshirildi. Kod yuboring.")
     else:
         await callback_query.answer("\u2757 Hali ham obuna emassiz!", show_alert=True)
-        
+
 @dp.message_handler(lambda message: message.text == "📢 Reklama")
 async def reklama_handler(message: types.Message):
-    await message.answer("📢 Reklama bo‘limi.Reklama uchun @DiyorbekPTMA ga murojat qiling.")
+    await message.answer("📢 Reklama bo‘limi. Reklama uchun @DiyorbekPTMA ga murojat qiling.")
 
 @dp.message_handler(lambda message: message.text == "💼 Homiylik")
 async def homiylik_handler(message: types.Message):
-    await message.answer("💼 Homiylik bo‘limi.Homiylik uchun karta: ''8800904257677885''")
+    await message.answer("💼 Homiylik bo‘limi. Homiylik uchun karta: ''8800904257677885''")
 
 @dp.message_handler(lambda m: m.text == "🛠 Admin panel")
 async def admin_handler(message: types.Message):
-    if await is_user_subscribed(message.from_user.id) and is_admin(message.from_user.id):
+    if await is_user_subscribed(message.from_user.id) and await is_admin(message.from_user.id):
         markup = ReplyKeyboardMarkup(resize_keyboard=True)
         markup.add(
             KeyboardButton("➕ Kod qo‘shish"), KeyboardButton("📄 Kodlar ro‘yxati")
@@ -98,31 +95,31 @@ async def admin_handler(message: types.Message):
 
 @dp.message_handler(lambda m: m.text == "🔙 Orqaga")
 async def back_to_menu(message: types.Message):
-    buttons = [[KeyboardButton("\ud83d\udce2 Reklama"), KeyboardButton("\ud83d\udcbc Homiylik")]]
-    if is_admin(message.from_user.id):
-        buttons.append([KeyboardButton("\ud83d\udee0 Admin panel")])
+    buttons = [[KeyboardButton("📢 Reklama"), KeyboardButton("💼 Homiylik")]]
+    if await is_admin(message.from_user.id):  # await qo'shildi
+        buttons.append([KeyboardButton("🛠 Admin panel")])
     markup = ReplyKeyboardMarkup(keyboard=buttons, resize_keyboard=True)
-    await message.answer("\ud83c\udfe0 Asosiy menyuga qaytdingiz.", reply_markup=markup)
+    await message.answer("🏠 Asosiy menyuga qaytdingiz.", reply_markup=markup)
 
-@dp.message_handler(lambda m: m.text == "\u2795 Kod qo\u2018shish")
+@dp.message_handler(lambda m: m.text == "➕ Kod qo‘shish")
 async def start_add_code(message: types.Message):
-    await message.answer("\u2795 Yangi kod va post ID ni yuboring. Masalan: 47 1000")
+    await message.answer("➕ Yangi kod va post ID ni yuboring. Masalan: 47 1000")
     await AdminStates.waiting_for_code.set()
 
 @dp.message_handler(state=AdminStates.waiting_for_code)
 async def add_code_handler(message: types.Message, state: FSMContext):
     parts = message.text.strip().split()
     if len(parts) != 2 or not all(p.isdigit() for p in parts):
-        await message.answer("\u274c Noto\u2018g\u2018ri format! Masalan: 47 1000")
+        await message.answer("❌ Noto‘g‘ri format! Masalan: 47 1000")
         return
     code, msg_id = parts
     add_code(code, int(msg_id))
-    await message.answer(f"\u2705 Kod qo\u2018shildi: {code} → {msg_id}")
+    await message.answer(f"✅ Kod qo‘shildi: {code} → {msg_id}")
     await state.finish()
 
-@dp.message_handler(lambda m: m.text == "\u274c Kodni o\u2018chirish")
+@dp.message_handler(lambda m: m.text == "❌ Kodni o‘chirish")
 async def start_remove_code(message: types.Message):
-    await message.answer("\ud83d\uddd1 O\u2018chirmoqchi bo\u2018lgan kodni yuboring:")
+    await message.answer("🗑 O‘chirmoqchi bo‘lgan kodni yuboring:")
     await AdminStates.waiting_for_remove.set()
 
 @dp.message_handler(state=AdminStates.waiting_for_remove)
@@ -130,36 +127,36 @@ async def remove_code_handler(message: types.Message, state: FSMContext):
     code = message.text.strip()
     if code_exists(code):
         remove_code(code)
-        await message.answer(f"\u2705 Kod o\u2018chirildi: {code}")
+        await message.answer(f"✅ Kod o‘chirildi: {code}")
     else:
-        await message.answer("\u274c Bunday kod yo\u2018q.")
+        await message.answer("❌ Bunday kod yo‘q.")
     await state.finish()
 
-@dp.message_handler(lambda m: m.text == "\ud83d\udcc4 Kodlar ro\u2018yxati")
+@dp.message_handler(lambda m: m.text == "📄 Kodlar ro‘yxati")
 async def list_codes_handler(message: types.Message):
     codes = get_all_codes()
     if not codes:
-        await message.answer("\ud83d\udcc2 Hozircha hech qanday kod yo\u2018q.")
+        await message.answer("📜 Hozircha hech qanday kod yo‘q.")
     else:
-        text = "\ud83d\udcc4 Kodlar ro\u2018yxati:\n"
+        text = "📄 Kodlar ro‘yxati:\n"
         for code, msg_id in codes.items():
-            text += f"\ud83d\udd22 {code} — ID: {msg_id}\n"
+            text += f"🔑 {code} — ID: {msg_id}\n"
         await message.answer(text)
 
-@dp.message_handler(lambda m: m.text == "\ud83d\udcca Statistika")
+@dp.message_handler(lambda m: m.text == "📊 Statistika")
 async def stat_handler(message: types.Message):
     try:
         chat = await bot.get_chat(CHANNEL_USERNAME)
         members = await bot.get_chat_members_count(chat.id)
         users = get_users_count()
         codes = get_codes_count()
-        await message.answer(f"\ud83d\udcca Obunachilar: {members}\n\ud83d\udce6 Kodlar soni: {codes} ta\n\ud83d\udc65 Foydalanuvchilar: {users} ta")
-    except:
-        await message.answer("\u26a0\ufe0f Statistika olishda xatolik!")
+        await message.answer(f"👥 Obunachilar: {members}\n📜 Kodlar soni: {codes} ta\n👤 Foydalanuvchilar: {users} ta")
+    except Exception as e:
+        await message.answer("⚠️ Statistika olishda xatolik!")
 
-@dp.message_handler(lambda m: m.text == "\ud83d\udc64 Admin qo\u2018shish")
+@dp.message_handler(lambda m: m.text == "👤 Admin qo‘shish")
 async def start_add_admin(message: types.Message):
-    await message.answer("\ud83c\udd94 Yangi adminning Telegram ID raqamini yuboring:")
+    await message.answer("🆕 Yangi adminning Telegram ID raqamini yuboring:")
     await AdminStates.waiting_for_admin_id.set()
 
 @dp.message_handler(state=AdminStates.waiting_for_admin_id)
@@ -167,20 +164,20 @@ async def add_admin_handler(message: types.Message, state: FSMContext):
     user_id = message.text.strip()
     if user_id.isdigit():
         user_id = int(user_id)
-        if not is_admin(user_id):
+        if not await is_admin(user_id):  # await qo'shildi
             add_admin(user_id)
-            await message.answer(f"\u2705 Admin qo\u2018shildi: `{user_id}`")
+            await message.answer(f"✅ Admin qo‘shildi: `{user_id}`")
         else:
-            await message.answer("\u26a0\ufe0f Bu foydalanuvchi allaqachon admin.")
+            await message.answer("⚠️ Bu foydalanuvchi allaqachon admin.")
     else:
-        await message.answer("\u274c Noto\u2018g\u2018ri ID!")
+        await message.answer("❌ Noto‘g‘ri ID!")
     await state.finish()
 
 @dp.message_handler(lambda msg: msg.text.strip().isdigit())
 async def handle_code(message: types.Message):
     code = message.text.strip()
     if not await is_user_subscribed(message.from_user.id):
-        await message.answer("\u2757 Koddan foydalanish uchun avval kanalga obuna bo\u2018ling.")
+        await message.answer("❗ Koddan foydalanish uchun avval kanalga obuna bo‘ling.")
         return
     msg_id = code_exists(code)
     if msg_id:
@@ -189,11 +186,11 @@ async def handle_code(message: types.Message):
             from_chat_id=CHANNEL_USERNAME,
             message_id=msg_id,
             reply_markup=InlineKeyboardMarkup().add(
-                InlineKeyboardButton("\ud83d\udcc5 Yuklab olish", url=f"https://t.me/{CHANNEL_USERNAME.strip('@')}/{msg_id}")
+                InlineKeyboardButton("📥 Yuklab olish", url=f"https://t.me/{CHANNEL_USERNAME.strip('@')}/{msg_id}")
             )
         )
     else:
-        await message.answer("\u274c Bunday kod topilmadi. Iltimos, to\u2018g\u2018ri kod yuboring.")
+        await message.answer("❌ Bunday kod topilmadi. Iltimos, to‘g‘ri kod yuboring.")
 
 if __name__ == '__main__':
     executor.start_polling(dp, skip_updates=True)
