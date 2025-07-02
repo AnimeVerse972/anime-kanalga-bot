@@ -81,7 +81,7 @@ async def homiylik_handler(message: types.Message):
 
 @dp.message_handler(lambda m: m.text == "🛠 Admin panel")
 async def admin_handler(message: types.Message):
-    if is_user_admin(message.from_user.id):
+    if await is_user_subscribed(message.from_user.id) and is_admin(message.from_user.id):
         markup = ReplyKeyboardMarkup(resize_keyboard=True)
         markup.add(
             KeyboardButton("➕ Kod qo‘shish"), KeyboardButton("📄 Kodlar ro‘yxati")
@@ -94,7 +94,7 @@ async def admin_handler(message: types.Message):
         )
         await message.answer("👮‍♂️ Admin paneliga xush kelibsiz!", reply_markup=markup)
     else:
-        await message.answer("⛔ Siz admin emassiz!")
+        await message.answer("⛔ Siz admin emassiz yoki kanalga obuna bo'lmagansiz!")
 
 @dp.message_handler(lambda m: m.text == "🔙 Orqaga")
 async def back_to_menu(message: types.Message):
