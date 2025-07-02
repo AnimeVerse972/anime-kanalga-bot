@@ -54,6 +54,13 @@ async def start_handler(message: types.Message):
         )
         await message.answer("\u2757 Iltimos, kanalga obuna bo\u2018ling:", reply_markup=markup)
 
+@dp.message_handler(commands=["myid"])
+async def get_my_id(message: types.Message):
+    from database import is_admin
+    status = "Admin" if is_admin(message.from_user.id) else "Oddiy foydalanuvchi"
+    await message.answer(f"🆔 ID: `{message.from_user.id}`\n👤 Holat: {status}", parse_mode="Markdown")
+
+
 @dp.callback_query_handler(lambda c: c.data == "check_sub")
 async def check_subscription(callback_query: types.CallbackQuery):
     if await is_user_subscribed(callback_query.from_user.id):
