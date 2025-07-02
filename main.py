@@ -211,13 +211,24 @@ async def start_remove_code(message: types.Message):
 
 @dp.message_handler(state=AdminStates.waiting_for_remove)
 async def remove_code_handler(message: types.Message, state: FSMContext):
-    code = message.text.strip()
-    if code_exists(code):
-        remove_code(code)
-        await message.answer(f"✅ Kod o‘chirildi: {code}")
-    else:
-        await message.answer("❌ Bunday kod yo‘q.")
+    # Kodlarni vergul bilan ajratish
+    codes = message.text.strip().split(',')  # O'chirilishi kerak bo'lgan kodlarni olish
+    success_count = 0  # O'chirilgan kodlar sonini hisoblash
+
+    for code in codes:
+        code = code.strip()  # Har bir kodni tozalash
+        if code.isdigit():  # Kod raqam ekanligini tekshirish
+            if code_exists(int(code)):  # Kod mavjudligini tekshirish
+                remove_code(int(code))  # Kodni ma'lumotlar bazasidan o'chirish
+                success_count += 1
+            else:
+                await message.answer(f"❌ Bunday kod yo‘q: {code}")
+        else:
+            await message.answer(f"❌ Noto‘g‘ri kod: {code}")
+
+    await message.answer(f"✅ {success_count} ta kod o‘chirildi.")
     await state.finish()
+
 
 @dp.message_handler(lambda m: m.text == "📄 Kodlar ro‘yxati")
 async def list_codes_handler(message: types.Message):
