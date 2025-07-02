@@ -185,14 +185,24 @@ async def start_add_code(message: types.Message):
 
 @dp.message_handler(state=AdminStates.waiting_for_code)
 async def add_code_handler(message: types.Message, state: FSMContext):
-    parts = message.text.strip().split()
-    if len(parts) != 2 or not all(p.isdigit() for p in parts):
-        await message.answer("❌ Noto‘g‘ri format! Masalan: 47 1000")
-        return
-    code, msg_id = parts
-    add_code(code, int(msg_id))
-    await message.answer(f"✅ Kod qo‘shildi: {code} → {msg_id}")
+    # Kodlarni vergul bilan ajratish
+    code_pairs = message.text.strip().split(',')  # Kod va msg_id juftliklarini olish
+    success_count = 0  # Qo'shilgan kodlar sonini hisoblash
+
+    for pair in code_pairs:
+        pair = pair.strip()  # Har bir juftlikni tozalash
+        parts = pair.split()  # Kod va msg_id ni ajratish
+        if len(parts) != 2 or not all(p.isdigit() for p in parts):
+            await message.answer(f"❌ Noto‘g‘ri format: {pair}. Masalan: 47 1000")
+            continue
+        
+        code, msg_id = parts  # Kod va msg_id ni olish
+        add_code(code, int(msg_id))  # Kodni ma'lumotlar bazasiga qo'shish
+        success_count += 1
+
+    await message.answer(f"✅ {success_count} ta kod qo‘shildi.")
     await state.finish()
+
 
 @dp.message_handler(lambda m: m.text == "❌ Kodni o‘chirish")
 async def start_remove_code(message: types.Message):
