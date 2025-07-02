@@ -79,24 +79,24 @@ async def reklama_handler(message: types.Message):
 async def homiylik_handler(message: types.Message):
     await message.answer("💼 Homiylik bo‘limi.Homiylik uchun karta: ''8800904257677885''")
 
-@dp.message_handler(lambda m: m.text == "\ud83d\udee0 Admin panel")
+@dp.message_handler(lambda m: m.text == "🛠 Admin panel")
 async def admin_handler(message: types.Message):
-    if is_admin(message.from_user.id):
+    if is_user_admin(message.from_user.id):
         markup = ReplyKeyboardMarkup(resize_keyboard=True)
         markup.add(
-            KeyboardButton("\u2795 Kod qo\u2018shish"), KeyboardButton("\ud83d\udcc4 Kodlar ro\u2018yxati")
+            KeyboardButton("➕ Kod qo‘shish"), KeyboardButton("📄 Kodlar ro‘yxati")
         )
         markup.add(
-            KeyboardButton("\u274c Kodni o\u2018chirish"), KeyboardButton("\ud83d\udcca Statistika")
+            KeyboardButton("❌ Kodni o‘chirish"), KeyboardButton("📊 Statistika")
         )
         markup.add(
-            KeyboardButton("\ud83d\udc64 Admin qo\u2018shish"), KeyboardButton("\ud83d\udd19 Orqaga")
+            KeyboardButton("👤 Admin qo‘shish"), KeyboardButton("🔙 Orqaga")
         )
-        await message.answer("\ud83d\udc6e\u200d\u2642\ufe0f Admin paneliga xush kelibsiz!", reply_markup=markup)
+        await message.answer("👮‍♂️ Admin paneliga xush kelibsiz!", reply_markup=markup)
     else:
-        await message.answer("\u26d4 Siz admin emassiz!")
+        await message.answer("⛔ Siz admin emassiz!")
 
-@dp.message_handler(lambda m: m.text == "\ud83d\udd19 Orqaga")
+@dp.message_handler(lambda m: m.text == "🔙 Orqaga")
 async def back_to_menu(message: types.Message):
     buttons = [[KeyboardButton("\ud83d\udce2 Reklama"), KeyboardButton("\ud83d\udcbc Homiylik")]]
     if is_admin(message.from_user.id):
