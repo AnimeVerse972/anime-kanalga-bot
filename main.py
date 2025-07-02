@@ -41,18 +41,19 @@ async def start_handler(message: types.Message):
     add_user(message.from_user.id)
 
     if await is_user_subscribed(message.from_user.id):
-        buttons = [[KeyboardButton("\ud83d\udce2 Reklama"), KeyboardButton("\ud83d\udcbc Homiylik")]]
-        if is_admin(message.from_user.id):
-            buttons.append([KeyboardButton("\ud83d\udee0 Admin panel")])
+        buttons = [[KeyboardButton("📢 Reklama"), KeyboardButton("💼 Homiylik")]]
+        if is_admin(message.from_user.id):  # ❗ Bu yerda await yo‘q!
+            buttons.append([KeyboardButton("🛠 Admin panel")])
         markup = ReplyKeyboardMarkup(keyboard=buttons, resize_keyboard=True)
-        await message.answer("\u2705 Obuna bor. Kodni yuboring:", reply_markup=markup)
+        await message.answer("✅ Obuna bor. Kodni yuboring:", reply_markup=markup)
     else:
         markup = InlineKeyboardMarkup().add(
             InlineKeyboardButton("Kanal", url=f"https://t.me/{CHANNEL_USERNAME.strip('@')}")
         ).add(
-            InlineKeyboardButton("\u2705 Tekshirish", callback_data="check_sub")
+            InlineKeyboardButton("✅ Tekshirish", callback_data="check_sub")
         )
-        await message.answer("\u2757 Iltimos, kanalga obuna bo\u2018ling:", reply_markup=markup)
+        await message.answer("❗ Iltimos, kanalga obuna bo‘ling:", reply_markup=markup)
+
 
 @dp.message_handler(commands=["myid"])
 async def get_my_id(message: types.Message):
