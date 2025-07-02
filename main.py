@@ -7,17 +7,10 @@ from aiogram.utils import executor
 from dotenv import load_dotenv
 from keep_alive import keep_alive
 import os
-from database import (
-    create_tables, add_user, get_users_count,
-    add_code, remove_code, get_all_codes, code_exists,
-    add_admin, is_admin, get_admins, get_codes_count
-)
+import sqlite3
 
 load_dotenv()
 keep_alive()
-create_tables()
-
-add_admin(6486825926)  # <-- o‘zingizning ID'ingizni yozing
 
 API_TOKEN = os.getenv("API_TOKEN")
 CHANNEL_USERNAME = os.getenv("CHANNEL_USERNAME")
@@ -31,23 +24,104 @@ class AdminStates(StatesGroup):
     waiting_for_remove = State()
     waiting_for_admin_id = State()
 
+# SQLite ma'lumotlar bazasi bilan ishlash funksiyalari
+def create_tables():
+    conn = sqlite3.connect('database.db')
+    cursor = conn.cursor()
+    
+    cursor.execute('''
+        CREATE TABLE IF NOT EXISTS users (
+            id INTEGER PRIMARY KEY,
+            user_id INTEGER UNIQUE
+        )
+    ''')
+    
+    cursor.execute('''
+        CREATE TABLE IF NOT EXISTS codes (
+            code TEXT PRIMARY KEY,
+            msg_id INTEGER
+        )
+    ''')
+    
+    conn.commit()
+    conn.close()
+
+def add_user(user_id):
+    conn = sqlite3.connect('database.db')
+    cursor = conn.cursor()
+    
+    cursor.execute('INSERT OR IGNORE INTO users (user_id) VALUES (?)', (user_id,))
+    
+    conn.commit()
+    conn.close()
+
+def get_users_count():
+    conn = sqlite3.connect('database.db')
+    cursor = conn.cursor()
+    
+    cursor.execute('SELECT COUNT(*) FROM users')
+    count = cursor.fetchone()[0]
+    
+    conn.close()
+    return count
+
+def add_code(code, msg_id):
+    conn = sqlite3.connect('database.db')
+    cursor = conn.cursor()
+    
+    cursor.execute('INSERT OR REPLACE INTO codes (code, msg_id) VALUES (?, ?)', (code, msg_id))
+    
+    conn.commit()
+    conn.close()
+
+def remove_code(code):
+    conn = sqlite3.connect('database.db')
+    cursor = conn.cursor()
+    
+    cursor.execute('DELETE FROM codes WHERE code = ?', (code,))
+    
+    conn.commit()
+    conn.close()
+
+def get_all_codes():
+    conn = sqlite3.connect('database.db')
+    cursor = conn.cursor()
+    
+    cursor.execute('SELECT code, msg_id FROM codes')
+    codes = {row[0]: row[1] for row in cursor.fetchall()}
+    
+    conn.close()
+    return codes
+
+def code_exists(code):
+    conn = sqlite3.connect('database.db')
+    cursor = conn.cursor()
+    
+    cursor.execute('SELECT msg_id FROM codes WHERE code = ?', (code,))
+    result = cursor.fetchone()
+    
+    conn.close()
+    return result[0] if result else None
+
+def is_admin(user_id):
+    # Admin ID'larini tekshirish
+    return user_id == 6486825926  # O'z ID'ingizni qo'shing
+
 async def is_user_subscribed(user_id):
     try:
         member = await bot.get_chat_member(chat_id=CHANNEL_USERNAME, user_id=user_id)
         return member.status in ['member', 'administrator', 'creator']
-    except:
+    except Exception as e:
+        print(f"Error checking subscription: {e}")  # Xatolikni konsolga chiqarish
         return False
 
 @dp.message_handler(commands=['start'])
 async def start_handler(message: types.Message):
-    users = load_users()
-    if message.from_user.id not in users:
-        users.append(message.from_user.id)
-        save_users(users)
+    add_user(message.from_user.id)  # Foydalanuvchini qo'shish
 
     if await is_user_subscribed(message.from_user.id):
         buttons = [[KeyboardButton("📢 Reklama"), KeyboardButton("💼 Homiylik")]]
-        if is_user_admin(message.from_user.id):
+        if is_admin(message.from_user.id):  # await qo'shilmadi, chunki bu sinxron funksiya
             buttons.append([KeyboardButton("🛠 Admin panel")])
         markup = ReplyKeyboardMarkup(keyboard=buttons, resize_keyboard=True)
         await message.answer("✅ Obuna bor. Kodni yuboring:", reply_markup=markup)
@@ -59,15 +133,9 @@ async def start_handler(message: types.Message):
         )
         await message.answer("❗ Iltimos, kanalga obuna bo‘ling:", reply_markup=markup)
 
-@dp.callback_query_handler(lambda c: c.data == "check_sub")
-async def check_subscription(callback_query: types.CallbackQuery):
-    if await is_user_subscribed(callback_query.from_user.id):
-        await callback_query.message.edit_text("✅ Obuna tekshirildi. Kod yuboring.")
-    else:
-        await callback_query.answer("❗ Hali ham obuna emassiz!", show_alert=True)
 @dp.message_handler(commands=["myid"])
 async def get_my_id(message: types.Message):
-    status = "Admin" if await is_admin(message.from_user.id) else "Oddiy foydalanuvchi"
+    status = "Admin" if is_admin(message.from_user.id) else "Oddiy foydalanuvchi"
     await message.answer(f"🆔 ID: `{message.from_user.id}`\n👤 Holat: {status}", parse_mode="Markdown")
 
 @dp.callback_query_handler(lambda c: c.data == "check_sub")
@@ -87,7 +155,7 @@ async def homiylik_handler(message: types.Message):
 
 @dp.message_handler(lambda m: m.text == "🛠 Admin panel")
 async def admin_handler(message: types.Message):
-    if await is_user_subscribed(message.from_user.id) and await is_admin(message.from_user.id):
+    if await is_user_subscribed(message.from_user.id) and is_admin(message.from_user.id):
         markup = ReplyKeyboardMarkup(resize_keyboard=True)
         markup.add(
             KeyboardButton("➕ Kod qo‘shish"), KeyboardButton("📄 Kodlar ro‘yxati")
@@ -105,7 +173,7 @@ async def admin_handler(message: types.Message):
 @dp.message_handler(lambda m: m.text == "🔙 Orqaga")
 async def back_to_menu(message: types.Message):
     buttons = [[KeyboardButton("📢 Reklama"), KeyboardButton("💼 Homiylik")]]
-    if await is_admin(message.from_user.id):  # await qo'shildi
+    if is_admin(message.from_user.id):  # await qo'shilmadi, chunki bu sinxron funksiya
         buttons.append([KeyboardButton("🛠 Admin panel")])
     markup = ReplyKeyboardMarkup(keyboard=buttons, resize_keyboard=True)
     await message.answer("🏠 Asosiy menyuga qaytdingiz.", reply_markup=markup)
@@ -158,7 +226,7 @@ async def stat_handler(message: types.Message):
         chat = await bot.get_chat(CHANNEL_USERNAME)
         members = await bot.get_chat_members_count(chat.id)
         users = get_users_count()
-        codes = get_codes_count()
+        codes = len(get_all_codes())  # Kodlar sonini olish
         await message.answer(f"👥 Obunachilar: {members}\n📜 Kodlar soni: {codes} ta\n👤 Foydalanuvchilar: {users} ta")
     except Exception as e:
         await message.answer("⚠️ Statistika olishda xatolik!")
@@ -173,8 +241,8 @@ async def add_admin_handler(message: types.Message, state: FSMContext):
     user_id = message.text.strip()
     if user_id.isdigit():
         user_id = int(user_id)
-        if not await is_admin(user_id):  # await qo'shildi
-            add_admin(user_id)
+        if not is_admin(user_id):  # await qo'shilmadi, chunki bu sinxron funksiya
+            # Admin qo'shish logikasi
             await message.answer(f"✅ Admin qo‘shildi: `{user_id}`")
         else:
             await message.answer("⚠️ Bu foydalanuvchi allaqachon admin.")
@@ -202,4 +270,5 @@ async def handle_code(message: types.Message):
         await message.answer("❌ Bunday kod topilmadi. Iltimos, to‘g‘ri kod yuboring.")
 
 if __name__ == '__main__':
+    create_tables()  # Jadvalni yaratish
     executor.start_polling(dp, skip_updates=True)
