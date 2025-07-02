@@ -68,14 +68,14 @@ async def check_subscription(callback_query: types.CallbackQuery):
         await callback_query.message.edit_text("\u2705 Obuna tekshirildi. Kod yuboring.")
     else:
         await callback_query.answer("\u2757 Hali ham obuna emassiz!", show_alert=True)
-
-@dp.message_handler(lambda m: m.text == "\ud83d\udce2 Reklama")
+        
+@dp.message_handler(lambda message: message.text == "📢 Reklama")
 async def reklama_handler(message: types.Message):
-    await message.answer("Reklama uchun: @DiyorbekPTMA")
+    await message.answer("📢 Reklama bo‘limi.Reklama uchun @DiyorbekPTMA ga murojat qiling.")
 
-@dp.message_handler(lambda m: m.text == "\ud83d\udcbc Homiylik")
-async def homiy_handler(message: types.Message):
-    await message.answer("Homiylik uchun karta: `8800904257677885`")
+@dp.message_handler(lambda message: message.text == "💼 Homiylik")
+async def homiylik_handler(message: types.Message):
+    await message.answer("💼 Homiylik bo‘limi.Homiylik uchun karta: ''8800904257677885''")
 
 @dp.message_handler(lambda m: m.text == "\ud83d\udee0 Admin panel")
 async def admin_handler(message: types.Message):
